@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOL TikTok Dashboard - LOHO House</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#faf6f0; --card:#fff; --primary:#8B4513; --primary-light:#C19A6B;
+  --accent:#D2691E; --text:#3a2818; --muted:#8b7766; --border:#e8dcc4;
+  --green:#5a8a3a; --red:#c0392b; --gold:#b8860b; --shadow:0 2px 8px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);padding:20px;line-height:1.5}
+.container{max-width:1400px;margin:0 auto}
+header{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:28px 32px;border-radius:14px;margin-bottom:20px;box-shadow:0 4px 14px rgba(139,69,19,.18)}
+header h1{font-size:24px;margin-bottom:6px;font-weight:600}
+header .zh{font-weight:400;opacity:.85;margin-right:6px}
+header .sub{font-size:13px;opacity:.85}
+.tabs{display:flex;gap:6px;background:var(--card);padding:8px;border-radius:12px;margin-bottom:16px;box-shadow:var(--shadow);overflow-x:auto}
+.tab{padding:10px 22px;border-radius:8px;background:transparent;border:none;cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap;font-family:inherit}
+.tab.active{background:var(--primary);color:#fff}
+.tab:hover:not(.active){background:var(--bg)}
+.filter-bar{background:var(--card);padding:16px 20px;border-radius:12px;margin-bottom:16px;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.filter-bar .label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.status-pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{padding:6px 14px;border-radius:18px;border:1.5px solid var(--border);background:#fff;font-size:12px;cursor:pointer;user-select:none;font-weight:600;color:var(--muted)}
+.pill.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.range-inputs{display:flex;gap:8px;align-items:center}
+.range-inputs input{padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit}
+.btn{padding:8px 16px;background:var(--card);border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);font-family:inherit}
+.btn:hover{background:var(--bg)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--card);padding:16px 18px;border-radius:10px;border-left:4px solid var(--primary);box-shadow:var(--shadow)}
+.kpi .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.kpi .val{font-size:20px;font-weight:700;color:var(--primary)}
+.kpi .delta{font-size:11px;margin-top:4px;font-weight:600}
+.kpi .delta.up{color:var(--green)}
+.kpi .delta.down{color:var(--red)}
+.panel{background:var(--card);padding:20px;border-radius:12px;margin-bottom:16px;box-shadow:var(--shadow)}
+.panel h2{font-size:15px;margin-bottom:14px;color:var(--primary);border-bottom:2px solid var(--border);padding-bottom:8px;font-weight:600}
+.panel h2 .zh{font-weight:400;opacity:.75;margin-right:6px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+.chart-wrap{position:relative;height:300px}
+.chart-wrap.tall{height:420px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--bg);text-align:left;padding:10px 12px;font-weight:600;color:var(--primary);border-bottom:2px solid var(--border);font-size:12px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--border)}
+tr:hover td{background:#fdf9f1}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-green{background:#e8f3d6;color:var(--green)}
+.badge-red{background:#fce4e0;color:var(--red)}
+.badge-gold{background:#fdf1d4;color:var(--gold)}
+.badge-gray{background:#eee;color:var(--muted)}
+.footer{text-align:center;color:var(--muted);font-size:12px;margin-top:20px;padding:12px}
+select{padding:7px 12px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;background:#fff;cursor:pointer}
+.pager{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:14px;align-items:center}
+.pg-btn{min-width:32px;height:32px;padding:0 8px;border:1.5px solid var(--border);background:#fff;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);font-family:inherit}
+.pg-btn:hover:not(:disabled):not(.active){background:var(--bg)}
+.pg-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.pg-btn:disabled{opacity:.4;cursor:not-allowed}
+.pg-ellipsis{padding:0 4px;color:var(--muted)}
+.pg-info{font-size:12px;color:var(--muted);margin-left:8px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+<h1><span class="zh">KOL 達人 TikTok 營收儀表板</span> Dashboard Doanh Thu KOL TikTok - LOHO House</h1>
+<div class="sub">更新時間 Cập nhật: <span id="lastUpdate">__LAST_UPDATE__</span></div>
+</header>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="filter-bar">
+<span class="label">🏷️ Trạng thái 訂單狀態:</span>
+<div class="status-pills" id="statusPills"></div>
+<span class="label" style="margin-left:auto">📅 Khoảng ngày:</span>
+<div class="range-inputs">
+<input type="date" id="dateFrom"> – <input type="date" id="dateTo">
+</div>
+<button class="btn" onclick="resetFilters()">↻ Reset</button>
+</div>
+
+<div id="content"></div>
+
+<div class="footer">
+Loho House © 2026 · Dữ liệu: Google Sheets KOL_TikTok_Database_PerMonth
+</div>
+</div>
+
+<script>
+const RAW = "__DATA__";
+const MONTHS = "__MONTHS__";
+const STATUSES = [...new Set(RAW.map(o=>o.status).filter(Boolean))];
+
+const fmt = n => Math.round(n).toLocaleString('vi-VN');
+const fmtK = n => {
+  if(Math.abs(n)>=1e9) return (n/1e9).toFixed(2)+' tỷ';
+  if(Math.abs(n)>=1e6) return (n/1e6).toFixed(1)+' tr';
+  if(Math.abs(n)>=1e3) return (n/1e3).toFixed(0)+'k';
+  return Math.round(n).toString();
+};
+const fmtPct = n => (n*100).toFixed(1)+'%';
+
+let state = {
+  tab: 'overview',
+  statuses: new Set(['Đã quyết toán']),
+  dateFrom: null, dateTo: null,
+  ctFilter: '',
+  selectedMonth: MONTHS[MONTHS.length-1],
+  kolMomFrom: null, kolMomTo: null,
+  charts: {}
+};
+
+function buildTabs(){
+  const tabs = [
+    {id:'overview', label:'總覽 Tổng Quan'},
+    {id:'month', label:'📅 Theo Tháng / 月份'},
+    {id:'lookup', label:'🔍 Tra Cứu Theo Ngày'},
+    {id:'kols', label:'達人 KOL'}
+  ];
+  document.getElementById('tabs').innerHTML = tabs.map(t =>
+    '<button class="tab '+(state.tab===t.id?'active':'')+'" data-tab="'+t.id+'">'+t.label+'</button>'
+  ).join('');
+  document.querySelectorAll('.tab').forEach(el => {
+    el.onclick = () => { state.tab = el.dataset.tab; buildTabs(); render(); };
+  });
+}
+
+function buildStatusPills(){
+  document.getElementById('statusPills').innerHTML = STATUSES.map(s =>
+    '<div class="pill '+(state.statuses.has(s)?'active':'')+'" data-s="'+s+'">'+s+'</div>'
+  ).join('');
+  document.querySelectorAll('.pill').forEach(el => {
+    el.onclick = () => {
+      const s = el.dataset.s;
+      if(state.statuses.has(s)) state.statuses.delete(s); else state.statuses.add(s);
+      buildStatusPills(); render();
+    };
+  });
+}
+
+function initDateRange(){
+  const dates = RAW.map(o=>o.date).filter(Boolean).sort();
+  if(dates.length){
+    document.getElementById('dateFrom').value = dates[0];
+    document.getElementById('dateTo').value = dates[dates.length-1];
+    state.dateFrom = dates[0]; state.dateTo = dates[dates.length-1];
+  }
+}
+
+function resetFilters(){
+  state.statuses = new Set(['Đã quyết toán']);
+  state.ctFilter = '';
+  buildStatusPills();
+  initDateRange();
+  render();
+}
+
+function applyFilters(data, ignoreStatus){
+  return data.filter(o => {
+    if(!ignoreStatus && state.statuses.size>0 && !state.statuses.has(o.status)) return false;
+    if(state.dateFrom && o.date && o.date < state.dateFrom) return false;
+    if(state.dateTo && o.date && o.date > state.dateTo) return false;
+    return true;
+  });
+}
+
+function aggSum(arr){
+  return {
+    orders: arr.length,
+    qty: arr.reduce((s,o)=>s+o.qty,0),
+    gmv: arr.reduce((s,o)=>s+o.payment,0),
+    com: arr.reduce((s,o)=>s+o.com,0),
+    kols: new Set(arr.map(o=>o.kol)).size,
+  };
+}
+function aggBy(arr, keyFn){
+  const m = {};
+  arr.forEach(o => {
+    const k = keyFn(o);
+    if(!m[k]) m[k] = {key:k, orders:0, qty:0, gmv:0, com:0};
+    m[k].orders++; m[k].qty+=o.qty; m[k].gmv+=o.payment; m[k].com+=o.com;
+  });
+  return Object.values(m);
+}
+
+// Tìm SP bán chạy nhất (theo GMV) cho 1 KOL + AOV của SP đó
+function topProductForKol(allData, kolName){
+  const prods = {};
+  allData.forEach(o => {
+    if(o.kol !== kolName) return;
+    const k = groupProduct(o.product);
+    if(!prods[k]) prods[k] = {name:k, orders:0, qty:0, gmv:0};
+    prods[k].orders++;
+    prods[k].qty += o.qty;
+    prods[k].gmv += o.payment;
+  });
+  const arr = Object.values(prods);
+  if(!arr.length) return null;
+  arr.sort((a,b)=>b.gmv-a.gmv);
+  const top = arr[0];
+  return {
+    name: top.name,
+    orders: top.orders,
+    qty: top.qty,
+    gmv: top.gmv,
+    aov: top.orders ? top.gmv/top.orders : 0
+  };
+}
+
+// Gom sản phẩm theo nhóm Loho
+function groupProduct(name){
+  if(!name) return '(trống)';
+  const low = name.toLowerCase();
+  if(low.includes('combo') && (low.includes('sàn nhựa giả gỗ') || low.includes('sàn nhựa'))) return 'Combo sàn dán (5m² + 1m²)';
+  if(low.includes('sơn tường tone') && low.includes('1kg')) return 'Sơn tường 1kg (tất cả tone)';
+  return name;
+}
+
+function kpiCard(lab, val, delta){
+  let d = '';
+  if(delta !== undefined && delta !== null){
+    const arrow = delta>=0?'▲':'▼';
+    const cls = delta>=0?'up':'down';
+    d = '<div class="delta '+cls+'">'+arrow+' '+Math.abs(delta*100).toFixed(1)+'% vs trước</div>';
+  }
+  return '<div class="kpi"><div class="lab">'+lab+'</div><div class="val">'+val+'</div>'+d+'</div>';
+}
+
+function destroyChart(name){
+  if(state.charts[name]){ state.charts[name].destroy(); delete state.charts[name]; }
+}
+
+function mkChart(id, name, cfg){
+  destroyChart(name);
+  const el = document.getElementById(id);
+  if(!el) return;
+  state.charts[name] = new Chart(el, cfg);
+}
+
+// Phân trang bảng: hiện pageSize dòng/trang, có nút số trang 1-2-3-...N
+function paginateTable(tableId, navId, pageSize){
+  const table = document.getElementById(tableId);
+  const nav = document.getElementById(navId);
+  if(!table || !nav) return;
+  const rows = Array.from(table.querySelectorAll('tbody tr'));
+  const total = rows.length;
+  const totalPages = Math.ceil(total / pageSize);
+  let cur = 1;
+
+  function pageList(){
+    // Trả về list trang hiển thị, dùng 0 cho dấu "..."
+    if(totalPages <= 7) return Array.from({length:totalPages}, (_,i)=>i+1);
+    const list = [1];
+    let lo = Math.max(2, cur-1), hi = Math.min(totalPages-1, cur+1);
+    if(lo > 2) list.push(0);
+    for(let p=lo; p<=hi; p++) list.push(p);
+    if(hi < totalPages-1) list.push(0);
+    list.push(totalPages);
+    return list;
+  }
+
+  function show(page){
+    cur = Math.max(1, Math.min(totalPages, page));
+    rows.forEach((r,i)=>{
+      r.style.display = (i >= (cur-1)*pageSize && i < cur*pageSize) ? '' : 'none';
+    });
+    let h = '<button class="pg-btn" '+(cur===1?'disabled':'')+' data-pg="'+(cur-1)+'">‹</button>';
+    pageList().forEach(p=>{
+      if(p===0){ h += '<span class="pg-ellipsis">…</span>'; }
+      else { h += '<button class="pg-btn '+(p===cur?'active':'')+'" data-pg="'+p+'">'+p+'</button>'; }
+    });
+    h += '<button class="pg-btn" '+(cur===totalPages?'disabled':'')+' data-pg="'+(cur+1)+'">›</button>';
+    const from = total ? (cur-1)*pageSize+1 : 0;
+    const to = Math.min(cur*pageSize, total);
+    h += '<span class="pg-info">'+from+'–'+to+' / '+total+'</span>';
+    nav.innerHTML = h;
+    nav.querySelectorAll('.pg-btn').forEach(b=>{
+      b.onclick = ()=>{ if(!b.disabled) show(parseInt(b.dataset.pg)); };
+    });
+  }
+  if(totalPages <= 1){ nav.innerHTML=''; return; }
+  show(1);
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// === OVERVIEW ===
+function renderOverview(){
+  const data = applyFilters(RAW);
+  const totals = aggSum(data);
+  const aov = totals.orders ? totals.gmv/totals.orders : 0;
+  const comRate = totals.gmv ? totals.com/totals.gmv : 0;
+
+  let html = '<div class="kpi-grid">';
+  html += kpiCard('GMV 總營收','<span style="font-size:18px">'+fmt(totals.gmv)+'đ</span>');
+  html += kpiCard('Số đơn 訂單', fmt(totals.orders));
+  html += kpiCard('Hoa hồng 佣金','<span style="font-size:18px">'+fmt(totals.com)+'đ</span>');
+  html += kpiCard('AOV 客單價','<span style="font-size:16px">'+fmt(aov)+'đ</span>');
+  html += kpiCard('% HH/GMV', fmtPct(comRate));
+  html += kpiCard('KOL 達人', fmt(totals.kols));
+  html += '</div>';
+
+  // ① Bảng chi tiết tăng trưởng - có filter loại nội dung
+  const ctList = [...new Set(RAW.map(o=>o.ct).filter(Boolean))];
+  let ctOpts = '<option value="">Tất cả / 全部</option>';
+  ctList.forEach(c => {
+    ctOpts += '<option value="'+escHtml(c)+'"'+(state.ctFilter===c?' selected':'')+'>'+escHtml(c)+'</option>';
+  });
+
+  html += '<div class="panel"><h2><span class="zh">① 月度成長明細</span>Chi tiết tăng trưởng từng tháng</h2>';
+  html += '<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">';
+  html += '<span style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">🎬 Loại nội dung 內容類型:</span>';
+  html += '<select id="ctFilterSel">'+ctOpts+'</select>';
+  html += '</div>';
+
+  const dataForTable = state.ctFilter ? data.filter(o=>o.ct===state.ctFilter) : data;
+  const byMonth = aggBy(dataForTable, o => o.month).sort((a,b)=>a.key-b.key);
+
+  html += '<table><thead><tr><th>月份 Tháng</th><th class="num">營收 Doanh Thu (đ)</th><th class="num">訂單數 Đơn Hàng</th><th class="num">銷量 SL</th><th class="num">客單價 AOV (đ)</th><th class="num">佣金 (đ)</th><th class="num">環比 GMV</th><th class="num">環比 Đơn</th></tr></thead><tbody>';
+  let prev = null;
+  byMonth.forEach(r => {
+    const aov2 = r.orders ? r.gmv/r.orders : 0;
+    let momGmv = '<span class="badge badge-gray">—</span>';
+    let momOrd = '<span class="badge badge-gray">—</span>';
+    if(prev && prev.gmv>0){
+      const p = (r.gmv-prev.gmv)/prev.gmv;
+      momGmv = '<span class="badge badge-'+(p>=0?'green':'red')+'">'+(p>=0?'▲':'▼')+' '+Math.abs(p*100).toFixed(1)+'%</span>';
+    }
+    if(prev && prev.orders>0){
+      const po = (r.orders-prev.orders)/prev.orders;
+      momOrd = '<span class="badge badge-'+(po>=0?'green':'red')+'">'+(po>=0?'▲':'▼')+' '+Math.abs(po*100).toFixed(1)+'%</span>';
+    }
+    prev = r;
+    html += '<tr><td><strong>T'+r.key+'</strong></td><td class="num">'+fmt(r.gmv)+'</td><td class="num">'+fmt(r.orders)+'</td><td class="num">'+fmt(r.qty)+'</td><td class="num">'+fmt(aov2)+'</td><td class="num">'+fmt(r.com)+'</td><td class="num">'+momGmv+'</td><td class="num">'+momOrd+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // ②③ Charts
+  const byMonthAll = aggBy(data, o => o.month).sort((a,b)=>a.key-b.key);
+  html += '<div class="grid-2">';
+  html += '<div class="panel"><h2><span class="zh">② 各月份營收比較</span>So sánh doanh thu các tháng</h2><div class="chart-wrap"><canvas id="cMonth"></canvas></div></div>';
+  html += '<div class="panel"><h2><span class="zh">③ 各月份訂單比較</span>So sánh đơn hàng các tháng</h2><div class="chart-wrap"><canvas id="cMonthOrders"></canvas></div></div>';
+  html += '</div>';
+
+  // ④ Status
+  html += '<div class="panel"><h2><span class="zh">④ 訂單狀態分布</span>Phân bổ theo trạng thái đơn</h2><div class="chart-wrap"><canvas id="cStatus"></canvas></div></div>';
+
+  // ⑤ Top KOL
+  const byKol = aggBy(data, o=>o.kol).filter(r=>r.key).sort((a,b)=>b.gmv-a.gmv);
+  html += '<div class="panel"><h2><span class="zh">⑤ Top 15 達人 KOL</span>Top 15 KOL theo doanh thu</h2><div class="chart-wrap tall"><canvas id="cKol"></canvas></div></div>';
+
+  // ⑥ KOL detail - có thêm SP bán chạy nhất + AOV của SP
+  html += '<div class="panel"><h2><span class="zh">⑥ 達人詳細排名 Top 10</span>Bảng chi tiết KOL (Top 10) — kèm SP bán chạy nhất</h2>';
+  html += '<table><thead><tr><th>#</th><th>KOL</th><th class="num">Đơn</th><th class="num">SL</th><th class="num">GMV (đ)</th><th class="num">AOV chung (đ)</th><th>🏆 SP bán chạy nhất</th><th class="num">GMV SP (đ)</th><th class="num">AOV SP (đ)</th></tr></thead><tbody>';
+  byKol.slice(0,10).forEach((r,i) => {
+    const aov3 = r.orders ? r.gmv/r.orders : 0;
+    const rank = i<3 ? '<span class="badge badge-gold">#'+(i+1)+'</span>' : (i+1);
+    const topProd = topProductForKol(data, r.key);
+    const prodName = topProd ? (topProd.name.length>60 ? topProd.name.substring(0,60)+'...' : topProd.name) : '—';
+    const prodGmv = topProd ? fmt(topProd.gmv) : '—';
+    const prodAov = topProd ? fmt(topProd.aov) : '—';
+    html += '<tr><td>'+rank+'</td><td><strong>'+escHtml(r.key)+'</strong></td><td class="num">'+fmt(r.orders)+'</td><td class="num">'+fmt(r.qty)+'</td><td class="num">'+fmt(r.gmv)+'</td><td class="num">'+fmt(aov3)+'</td><td style="font-size:12px">'+escHtml(prodName)+'</td><td class="num">'+prodGmv+'</td><td class="num">'+prodAov+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // ⑦ Loai noi dung
+  const byCt = aggBy(data, o=>o.ct || '(trống)').sort((a,b)=>b.gmv-a.gmv);
+  html += '<div class="panel"><h2><span class="zh">⑦ 內容類型分析</span>Phân tích theo loại nội dung</h2>';
+  html += '<table><thead><tr><th>Loại nội dung</th><th class="num">Đơn</th><th class="num">GMV (đ)</th><th class="num">Hoa hồng (đ)</th><th class="num">% GMV</th></tr></thead><tbody>';
+  byCt.forEach(r => {
+    html += '<tr><td><strong>'+escHtml(r.key)+'</strong></td><td class="num">'+fmt(r.orders)+'</td><td class="num">'+fmt(r.gmv)+'</td><td class="num">'+fmt(r.com)+'</td><td class="num">'+fmtPct(totals.gmv?r.gmv/totals.gmv:0)+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // ⑧ Top SP
+  const byProd = aggBy(data, o=>groupProduct(o.product)).sort((a,b)=>b.gmv-a.gmv);
+  html += '<div class="panel"><h2><span class="zh">⑧ 暢銷產品 Top 10</span>Top 10 sản phẩm bán chạy</h2>';
+  html += '<table><thead><tr><th>#</th><th>Sản phẩm</th><th class="num">SL</th><th class="num">GMV (đ)</th></tr></thead><tbody>';
+  byProd.slice(0,10).forEach((r,i) => {
+    const name = r.key.length>90 ? r.key.substring(0,90)+'...' : r.key;
+    html += '<tr><td>'+(i+1)+'</td><td>'+escHtml(name)+'</td><td class="num">'+fmt(r.qty)+'</td><td class="num">'+fmt(r.gmv)+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  document.getElementById('content').innerHTML = html;
+
+  const ctSel = document.getElementById('ctFilterSel');
+  if(ctSel) ctSel.onchange = e => { state.ctFilter = e.target.value; render(); };
+
+  mkChart('cMonth','month',{
+    type:'bar',
+    data:{
+      labels: byMonthAll.map(r=>'T'+r.key),
+      datasets:[
+        {label:'GMV', data: byMonthAll.map(r=>r.gmv), backgroundColor:'#8B4513', borderRadius:6},
+        {label:'Hoa hồng', data: byMonthAll.map(r=>r.com), backgroundColor:'#D2691E', borderRadius:6}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.parsed.y)+'đ'}}},
+      scales:{y:{ticks:{callback:v=>fmtK(v)}}}}
+  });
+
+  mkChart('cMonthOrders','monthOrders',{
+    type:'bar',
+    data:{
+      labels: byMonthAll.map(r=>'T'+r.key),
+      datasets:[
+        {label:'Số đơn 訂單', data: byMonthAll.map(r=>r.orders), backgroundColor:'#5a8a3a', borderRadius:6},
+        {label:'Số lượng SP 銷量', data: byMonthAll.map(r=>r.qty), backgroundColor:'#b8860b', borderRadius:6}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.parsed.y)}}},
+      scales:{y:{ticks:{callback:v=>fmt(v)}}}}
+  });
+
+  // Status
+  const statusData = applyFilters(RAW, true);
+  const byStatus = {};
+  statusData.forEach(o => {
+    if(!byStatus[o.status]) byStatus[o.status] = {count:0, gmv:0};
+    byStatus[o.status].count++; byStatus[o.status].gmv += o.payment;
+  });
+  const sLabels = Object.keys(byStatus);
+  mkChart('cStatus','status',{
+    type:'doughnut',
+    data:{
+      labels: sLabels.map(l => l+' ('+fmt(byStatus[l].count)+')'),
+      datasets:[{data: sLabels.map(l=>byStatus[l].gmv), backgroundColor:['#5a8a3a','#c0392b','#b8860b','#8B4513','#C19A6B']}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.parsed)+'đ'}}}}
+  });
+
+  // Top KOL chart
+  const top = byKol.slice(0,15);
+  mkChart('cKol','kol',{
+    type:'bar',
+    data:{labels: top.map(r=>r.key), datasets:[{label:'GMV', data: top.map(r=>r.gmv), backgroundColor:'#8B4513', borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.parsed.x)+'đ'}}},
+      scales:{x:{ticks:{callback:v=>fmtK(v)}}}}
+  });
+}
+
+// === MONTH ===
+function renderMonth(m){
+  const monthData = RAW.filter(o => o.month===m && (state.statuses.size===0 || state.statuses.has(o.status)));
+  const prevData = RAW.filter(o => o.month===m-1 && (state.statuses.size===0 || state.statuses.has(o.status)));
+  const t = aggSum(monthData);
+  const p = aggSum(prevData);
+  const aov = t.orders ? t.gmv/t.orders : 0;
+  const pAov = p.orders ? p.gmv/p.orders : 0;
+  const dGmv = p.gmv>0 ? (t.gmv-p.gmv)/p.gmv : null;
+  const dOrders = p.orders>0 ? (t.orders-p.orders)/p.orders : null;
+  const dAov = pAov>0 ? (aov-pAov)/pAov : null;
+  const dCom = p.com>0 ? (t.com-p.com)/p.com : null;
+
+  // Dropdown chọn tháng
+  let monthOpts = '';
+  MONTHS.forEach(mm => {
+    monthOpts += '<option value="'+mm+'"'+(mm===m?' selected':'')+'>Tháng '+mm+' / '+mm+'月</option>';
+  });
+  let html = '<div class="panel" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">';
+  html += '<span style="font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">📅 Chọn tháng / 選擇月份:</span>';
+  html += '<select id="monthSel" style="padding:9px 16px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:600;font-family:inherit;background:#fff;cursor:pointer;color:var(--primary)">'+monthOpts+'</select>';
+  html += '<span style="font-size:13px;color:var(--muted)">· so sánh với <strong>Tháng '+(m-1)+'</strong>'+(m===MONTHS[0]?' (chưa có)':'')+'</span>';
+  html += '</div>';
+  html += '<div class="kpi-grid">';
+  html += kpiCard('GMV 總營收','<span style="font-size:18px">'+fmt(t.gmv)+'đ</span>', dGmv);
+  html += kpiCard('Số đơn 訂單', fmt(t.orders), dOrders);
+  html += kpiCard('Hoa hồng 佣金','<span style="font-size:18px">'+fmt(t.com)+'đ</span>', dCom);
+  html += kpiCard('AOV 客單價','<span style="font-size:16px">'+fmt(aov)+'đ</span>', dAov);
+  html += kpiCard('KOL 達人', fmt(t.kols));
+  html += kpiCard('SL bán 銷量', fmt(t.qty));
+  html += '</div>';
+
+  const byDay = aggBy(monthData, o=>o.date).filter(r=>r.key).sort((a,b)=>a.key.localeCompare(b.key));
+  html += '<div class="panel"><h2><span class="zh">② 每日營收圖表</span>Doanh thu theo ngày trong tháng '+m+'</h2><div class="chart-wrap"><canvas id="cDay"></canvas></div></div>';
+  html += '<div class="panel"><h2><span class="zh">③ 各月份營收比較</span>So sánh với các tháng khác</h2><div class="chart-wrap"><canvas id="cMCompare"></canvas></div></div>';
+
+  const byKol = aggBy(monthData, o=>o.kol).filter(r=>r.key).sort((a,b)=>b.gmv-a.gmv);
+  html += '<div class="panel"><h2><span class="zh">④ Top 10 達人 Tháng '+m+'</span>Top 10 KOL trong tháng — kèm SP bán chạy nhất</h2>';
+  html += '<table><thead><tr><th>#</th><th>KOL</th><th class="num">Đơn</th><th class="num">SL</th><th class="num">GMV (đ)</th><th class="num">AOV chung (đ)</th><th>🏆 SP bán chạy nhất</th><th class="num">GMV SP</th><th class="num">AOV SP</th></tr></thead><tbody>';
+  byKol.slice(0,10).forEach((r,i)=>{
+    const aov2 = r.orders ? r.gmv/r.orders : 0;
+    const rank = i<3 ? '<span class="badge badge-gold">#'+(i+1)+'</span>' : (i+1);
+    const topProd = topProductForKol(monthData, r.key);
+    const prodName = topProd ? (topProd.name.length>60 ? topProd.name.substring(0,60)+'...' : topProd.name) : '—';
+    const prodGmv = topProd ? fmt(topProd.gmv) : '—';
+    const prodAov = topProd ? fmt(topProd.aov) : '—';
+    html += '<tr><td>'+rank+'</td><td><strong>'+escHtml(r.key)+'</strong></td><td class="num">'+fmt(r.orders)+'</td><td class="num">'+fmt(r.qty)+'</td><td class="num">'+fmt(r.gmv)+'</td><td class="num">'+fmt(aov2)+'</td><td style="font-size:12px">'+escHtml(prodName)+'</td><td class="num">'+prodGmv+'</td><td class="num">'+prodAov+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  const byCt = aggBy(monthData, o=>o.ct || '(trống)').sort((a,b)=>b.gmv-a.gmv);
+  html += '<div class="panel"><h2><span class="zh">⑤ 內容類型 Tháng '+m+'</span>Phân tích loại nội dung</h2>';
+  html += '<table><thead><tr><th>Loại</th><th class="num">Đơn</th><th class="num">GMV (đ)</th><th class="num">% GMV</th></tr></thead><tbody>';
+  byCt.forEach(r=>{
+    html += '<tr><td><strong>'+escHtml(r.key)+'</strong></td><td class="num">'+fmt(r.orders)+'</td><td class="num">'+fmt(r.gmv)+'</td><td class="num">'+fmtPct(t.gmv?r.gmv/t.gmv:0)+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  const allMonth = RAW.filter(o => o.month===m);
+  const byS = {};
+  allMonth.forEach(o => {
+    if(!byS[o.status]) byS[o.status] = {orders:0, gmv:0};
+    byS[o.status].orders++; byS[o.status].gmv += o.payment;
+  });
+  html += '<div class="panel"><h2><span class="zh">⑥ 訂單狀態 Tháng '+m+'</span>Phân bổ trạng thái đơn (toàn bộ tháng, không lọc theo filter trên)</h2>';
+  html += '<table><thead><tr><th>Trạng thái</th><th class="num">Đơn</th><th class="num">GMV (đ)</th><th class="num">% GMV</th></tr></thead><tbody>';
+  const monthTotalGmv = Object.values(byS).reduce((s,v)=>s+v.gmv,0);
+  Object.entries(byS).sort((a,b)=>b[1].gmv-a[1].gmv).forEach(([k,v])=>{
+    html += '<tr><td><strong>'+escHtml(k)+'</strong></td><td class="num">'+fmt(v.orders)+'</td><td class="num">'+fmt(v.gmv)+'</td><td class="num">'+fmtPct(monthTotalGmv?v.gmv/monthTotalGmv:0)+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  const byProd = aggBy(monthData, o=>groupProduct(o.product)).sort((a,b)=>b.gmv-a.gmv);
+  html += '<div class="panel"><h2><span class="zh">⑦ 暢銷產品</span>Top 10 sản phẩm bán chạy</h2>';
+  html += '<table><thead><tr><th>#</th><th>Sản phẩm</th><th class="num">SL</th><th class="num">GMV (đ)</th></tr></thead><tbody>';
+  byProd.slice(0,10).forEach((r,i)=>{
+    const name = r.key.length>90 ? r.key.substring(0,90)+'...' : r.key;
+    html += '<tr><td>'+(i+1)+'</td><td>'+escHtml(name)+'</td><td class="num">'+fmt(r.qty)+'</td><td class="num">'+fmt(r.gmv)+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  document.getElementById('content').innerHTML = html;
+
+  // Bind month dropdown
+  const mSel = document.getElementById('monthSel');
+  if(mSel) mSel.onchange = e => { state.selectedMonth = parseInt(e.target.value); render(); };
+
+  mkChart('cDay','day',{
+    type:'line',
+    data:{
+      labels: byDay.map(r=>r.key.slice(5)),
+      datasets:[{label:'GMV', data: byDay.map(r=>r.gmv), borderColor:'#8B4513', backgroundColor:'rgba(139,69,19,.15)', tension:.3, fill:true}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.parsed.y)+'đ'}}},
+      scales:{y:{ticks:{callback:v=>fmtK(v)}}}}
+  });
+
+  const allMonthsAgg = MONTHS.map(mm => {
+    const d = RAW.filter(o => o.month===mm && (state.statuses.size===0 || state.statuses.has(o.status)));
+    return {m:mm, gmv: d.reduce((s,o)=>s+o.payment,0)};
+  });
+  mkChart('cMCompare','mc',{
+    type:'bar',
+    data:{
+      labels: allMonthsAgg.map(r=>'T'+r.m),
+      datasets:[{label:'GMV', data: allMonthsAgg.map(r=>r.gmv),
+        backgroundColor: allMonthsAgg.map(r=>r.m===m?'#D2691E':'#C19A6B'), borderRadius:6}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.parsed.y)+'đ'}}},
+      scales:{y:{ticks:{callback:v=>fmtK(v)}}}}
+  });
+}
+
+// === LOOKUP ===
+function renderLookup(){
+  const data = applyFilters(RAW);
+  const t = aggSum(data);
+  const aov = t.orders ? t.gmv/t.orders : 0;
+
+  let html = '<div style="font-size:13px;color:var(--muted);margin:-4px 0 12px;padding:0 4px">📅 Khoảng: <strong>'+(state.dateFrom||'?')+'</strong> → <strong>'+(state.dateTo||'?')+'</strong> · Trạng thái: <strong>'+([...state.statuses].join(', ') || 'Tất cả')+'</strong></div>';
+  html += '<div class="kpi-grid">';
+  html += kpiCard('GMV','<span style="font-size:18px">'+fmt(t.gmv)+'đ</span>');
+  html += kpiCard('Số đơn', fmt(t.orders));
+  html += kpiCard('Hoa hồng','<span style="font-size:18px">'+fmt(t.com)+'đ</span>');
+  html += kpiCard('AOV','<span style="font-size:16px">'+fmt(aov)+'đ</span>');
+  html += kpiCard('KOL', fmt(t.kols));
+  html += kpiCard('SL bán', fmt(t.qty));
+  html += '</div>';
+
+  const byDay = aggBy(data, o=>o.date).filter(r=>r.key).sort((a,b)=>a.key.localeCompare(b.key));
+  html += '<div class="panel"><h2><span class="zh">營收趨勢</span>Xu hướng doanh thu theo ngày</h2><div class="chart-wrap"><canvas id="cDayL"></canvas></div></div>';
+
+  // === So sánh tăng trưởng cùng kỳ ===
+  function dshift(s, days){
+    const p = s.split('-').map(Number);
+    const d = new Date(p[0], p[1]-1, p[2]);
+    d.setDate(d.getDate()+days);
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+dd;
+  }
+  function ndays(from, to){
+    const a = from.split('-').map(Number), b = to.split('-').map(Number);
+    const d1 = new Date(a[0],a[1]-1,a[2]), d2 = new Date(b[0],b[1]-1,b[2]);
+    return Math.round((d2-d1)/86400000)+1;
+  }
+  function rangeData(from, to){
+    return RAW.filter(o => {
+      if(state.statuses.size>0 && !state.statuses.has(o.status)) return false;
+      return o.date && o.date>=from && o.date<=to;
+    });
+  }
+  if(state.dateFrom && state.dateTo){
+    const N = ndays(state.dateFrom, state.dateTo);
+    const prevFrom = dshift(state.dateFrom, -N), prevTo = dshift(state.dateFrom, -1);
+    const prev2From = dshift(state.dateFrom, -2*N), prev2To = dshift(state.dateFrom, -N-1);
+    const periods = [
+      {label:'本期 Kỳ Này', sub:state.dateFrom+' → '+state.dateTo+' ('+N+' ngày)', data:data},
+      {label:'上期 Kỳ Trước', sub:prevFrom+' → '+prevTo+' ('+N+' ngày)', data:rangeData(prevFrom, prevTo)},
+      {label:'前上期 Kỳ Trước Nữa', sub:prev2From+' → '+prev2To+' ('+N+' ngày)', data:rangeData(prev2From, prev2To)},
+    ];
+    const periodAgg = periods.map(p=>aggSum(p.data));
+    html += '<div class="panel"><h2><span class="zh">對比明細</span>So sánh tăng trưởng giữa các kỳ</h2>';
+    html += '<table><thead><tr><th>Kỳ so sánh</th><th class="num">Doanh thu (đ)</th><th class="num">Đơn hàng</th><th class="num">AOV (đ)</th><th class="num">Tăng trưởng vs kỳ liền trước</th></tr></thead><tbody>';
+    periods.forEach((p,idx)=>{
+      const a = periodAgg[idx];
+      const aov2 = a.orders ? a.gmv/a.orders : 0;
+      // So sánh với kỳ liền kề cũ hơn (periods[idx+1])
+      let chg = '<span class="badge badge-gray">— (không có kỳ trước)</span>';
+      const older = periodAgg[idx+1];
+      if(older){
+        if(older.gmv>0){
+          const diff = (a.gmv-older.gmv)/older.gmv;
+          chg = '<span class="badge badge-'+(diff>=0?'green':'red')+'">'+(diff>=0?'▲':'▼')+' '+Math.abs(diff*100).toFixed(1)+'%</span>';
+        } else { chg = '<span class="badge badge-gray">— (kỳ trước = 0)</span>'; }
+      }
+      html += '<tr><td><strong>'+p.label+'</strong><br><span style="font-size:11px;color:var(--muted)">'+p.sub+'</span></td><td class="num">'+fmt(a.gmv)+'</td><td class="num">'+fmt(a.orders)+'</td><td class="num">'+fmt(aov2)+'</td><td class="num">'+chg+'</td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px">▲▼ = mức tăng/giảm doanh thu của kỳ đó so với kỳ liền kề ngay trước nó.</div></div>';
+
+    // === Top 5 SP bán chạy + so sánh kỳ trước ===
+    const prevProd = {};
+    periods[1].data.forEach(o=>{
+      const k = groupProduct(o.product);
+      prevProd[k] = (prevProd[k]||0) + o.payment;
+    });
+    const curProd = aggBy(data, o=>groupProduct(o.product)).sort((a,b)=>b.gmv-a.gmv);
+    html += '<div class="panel"><h2><span class="zh">暢銷產品 Top 5</span>Top 5 sản phẩm bán chạy — so sánh với kỳ trước</h2>';
+    html += '<table><thead><tr><th>#</th><th>Sản phẩm</th><th class="num">SL</th><th class="num">GMV kỳ này (đ)</th><th class="num">GMV kỳ trước (đ)</th><th class="num">Thay đổi</th></tr></thead><tbody>';
+    curProd.slice(0,5).forEach((r,i)=>{
+      const name = r.key.length>70 ? r.key.substring(0,70)+'...' : r.key;
+      const pv = prevProd[r.key] || 0;
+      let chg = '<span class="badge badge-gray">mới</span>';
+      if(pv>0){
+        const diff = (r.gmv-pv)/pv;
+        chg = '<span class="badge badge-'+(diff>=0?'green':'red')+'">'+(diff>=0?'▲':'▼')+' '+Math.abs(diff*100).toFixed(1)+'%</span>';
+      }
+      html += '<tr><td>'+(i+1)+'</td><td style="font-size:12px">'+escHtml(name)+'</td><td class="num">'+fmt(r.qty)+'</td><td class="num">'+fmt(r.gmv)+'</td><td class="num">'+fmt(pv)+'</td><td class="num">'+chg+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  const byKol = aggBy(data, o=>o.kol).filter(r=>r.key).sort((a,b)=>b.gmv-a.gmv);
+  // Data KOL kỳ trước để so sánh
+  let prevByKol = [];
+  if(state.dateFrom && state.dateTo){
+    const Nk = ndays(state.dateFrom, state.dateTo);
+    const pkF = dshift(state.dateFrom, -Nk), pkT = dshift(state.dateFrom, -1);
+    prevByKol = aggBy(rangeData(pkF, pkT), o=>o.kol).filter(r=>r.key).sort((a,b)=>b.gmv-a.gmv);
+  }
+  function kolTableRows(arr){
+    let s = '';
+    arr.slice(0,10).forEach((r,i)=>{
+      const rank = i<3 ? '<span class="badge badge-gold">#'+(i+1)+'</span>' : (i+1);
+      s += '<tr><td>'+rank+'</td><td><strong>'+escHtml(r.key)+'</strong></td><td class="num">'+fmt(r.orders)+'</td><td class="num">'+fmt(r.gmv)+'</td><td class="num">'+fmt(r.com)+'</td></tr>';
+    });
+    if(!arr.length) s = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Không có dữ liệu</td></tr>';
+    return s;
+  }
+  html += '<div class="grid-2">';
+  html += '<div class="panel"><h2><span class="zh">本期達人 Top 10</span>Top 10 KOL bán chạy nhất — Kỳ này</h2>';
+  html += '<table><thead><tr><th>#</th><th>KOL</th><th class="num">Đơn</th><th class="num">GMV (đ)</th><th class="num">Hoa hồng (đ)</th></tr></thead><tbody>';
+  html += kolTableRows(byKol);
+  html += '</tbody></table></div>';
+  html += '<div class="panel"><h2><span class="zh">上期達人 Top 10</span>Top 10 KOL bán chạy nhất — Kỳ trước</h2>';
+  html += '<table><thead><tr><th>#</th><th>KOL</th><th class="num">Đơn</th><th class="num">GMV (đ)</th><th class="num">Hoa hồng (đ)</th></tr></thead><tbody>';
+  html += kolTableRows(prevByKol);
+  html += '</tbody></table></div>';
+  html += '</div>';
+
+  // === Panel KOL so sánh cùng kỳ tháng trước - ĐỘC LẬP với filter tab ===
+  // Có ô chọn ngày riêng. CHỈ tính "Đã quyết toán".
+  if(!state.kolMomFrom && state.dateFrom) state.kolMomFrom = state.dateFrom;
+  if(!state.kolMomTo && state.dateTo) state.kolMomTo = state.dateTo;
+
+  html += '<div class="panel" id="kolMomPanel">';
+  html += '<h2><span class="zh">達人營收 — 月度同期對比</span>Doanh thu KOL — So sánh cùng kỳ tháng trước (chỉ tính "Đã quyết toán")</h2>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:14px">';
+  html += '<span style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">📅 Chọn ngày riêng cho mục này:</span>';
+  html += '<input type="date" id="momFrom" value="'+(state.kolMomFrom||'')+'" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit"> – ';
+  html += '<input type="date" id="momTo" value="'+(state.kolMomTo||'')+'" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit">';
+  html += '<button class="btn" id="momReset" style="padding:5px 12px;font-size:11px">↻ Đồng bộ với filter tab</button>';
+  html += '</div>';
+  html += '<div id="momContent"></div>';
+  html += '</div>';
+
+  html += '<div class="panel"><h2><span class="zh">每日明細</span>Chi tiết theo ngày</h2>';
+  html += '<table id="tblDays"><thead><tr><th>Ngày</th><th class="num">Đơn</th><th class="num">SL</th><th class="num">GMV (đ)</th><th class="num">Hoa hồng (đ)</th><th class="num">AOV (đ)</th></tr></thead><tbody>';
+  byDay.forEach(r=>{
+    const a2 = r.orders ? r.gmv/r.orders : 0;
+    html += '<tr><td><strong>'+r.key+'</strong></td><td class="num">'+fmt(r.orders)+'</td><td class="num">'+fmt(r.qty)+'</td><td class="num">'+fmt(r.gmv)+'</td><td class="num">'+fmt(r.com)+'</td><td class="num">'+fmt(a2)+'</td></tr>';
+  });
+  html += '</tbody></table><div class="pager" id="pagerDays"></div></div>';
+
+  document.getElementById('content').innerHTML = html;
+  paginateTable('tblDays', 'pagerDays', 5);
+
+  // ===== Panel KOL so sánh cùng kỳ tháng trước: build content + bind events =====
+  function shiftMonthDate(s, months){
+    if(!s) return '';
+    const p = s.split('-').map(Number);
+    let y = p[0], m = p[1]-months, d = p[2];
+    while(m < 1){ m += 12; y -= 1; }
+    while(m > 12){ m -= 12; y += 1; }
+    const lastDay = new Date(y, m, 0).getDate();
+    return y+'-'+String(m).padStart(2,'0')+'-'+String(Math.min(d, lastDay)).padStart(2,'0');
+  }
+  function buildMomContent(fromDate, toDate){
+    const el = document.getElementById('momContent');
+    if(!el) return;
+    if(!fromDate || !toDate){ el.innerHTML = '<em style="color:var(--muted)">Vui lòng chọn khoảng ngày.</em>'; return; }
+    const mmFrom = shiftMonthDate(fromDate, 1);
+    const mmTo = shiftMonthDate(toDate, 1);
+    const settledRange = (from, to) => RAW.filter(o => o.status==='Đã quyết toán' && o.date && o.date>=from && o.date<=to);
+    const curData = settledRange(fromDate, toDate);
+    const mmData = settledRange(mmFrom, mmTo);
+    const accMap = arr => {
+      const m = {};
+      arr.forEach(o=>{
+        if(!o.kol) return;
+        if(!m[o.kol]) m[o.kol] = {orders:0, gmv:0};
+        m[o.kol].orders++; m[o.kol].gmv += o.payment;
+      });
+      return m;
+    };
+    const curMap = accMap(curData), mmMap = accMap(mmData);
+    const allKols = new Set([...Object.keys(curMap), ...Object.keys(mmMap)]);
+    const merged = [...allKols].map(k => ({
+      kol: k,
+      curGmv: (curMap[k]||{}).gmv || 0, curOrders: (curMap[k]||{}).orders || 0,
+      mmGmv: (mmMap[k]||{}).gmv || 0, mmOrders: (mmMap[k]||{}).orders || 0,
+    }));
+    merged.sort((a,b)=>b.curGmv-a.curGmv);
+    const curTotal = curData.reduce((s,o)=>s+o.payment,0);
+    const mmTotal = mmData.reduce((s,o)=>s+o.payment,0);
+    const diffTotal = mmTotal>0 ? (curTotal-mmTotal)/mmTotal : null;
+
+    let h = '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">📅 Kỳ này: <strong>'+fromDate+' → '+toDate+'</strong> · Cùng kỳ tháng trước: <strong>'+mmFrom+' → '+mmTo+'</strong></div>';
+    h += '<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">';
+    h += kpiCard('GMV kỳ này', '<span style="font-size:16px">'+fmt(curTotal)+'đ</span>');
+    h += kpiCard('GMV cùng kỳ tháng trước', '<span style="font-size:16px">'+fmt(mmTotal)+'đ</span>');
+    let tk = '<span style="font-size:12px;color:var(--muted)">không có kỳ trước</span>';
+    if(diffTotal !== null){
+      const arrow = diffTotal>=0?'▲':'▼';
+      const cls = diffTotal>=0?'up':'down';
+      tk = '<span class="delta '+cls+'" style="font-size:18px;font-weight:700">'+arrow+' '+Math.abs(diffTotal*100).toFixed(1)+'%</span>';
+    }
+    h += kpiCard('Thay đổi tổng', tk);
+    h += '</div>';
+    h += '<table id="tblKolMoM"><thead><tr><th>#</th><th>KOL</th><th class="num">GMV kỳ này (đ)</th><th class="num">Đơn kỳ này</th><th class="num">GMV cùng kỳ tháng trước (đ)</th><th class="num">Đơn cùng kỳ</th><th class="num">Thay đổi</th></tr></thead><tbody>';
+    if(!merged.length){
+      h += '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Không có dữ liệu trong khoảng ngày này</td></tr>';
+    }
+    merged.forEach((r,i)=>{
+      const rank = i<3 ? '<span class="badge badge-gold">#'+(i+1)+'</span>' : (i+1);
+      let chg = '<span class="badge badge-gray">mới</span>';
+      if(r.mmGmv>0){
+        const diff = (r.curGmv-r.mmGmv)/r.mmGmv;
+        chg = '<span class="badge badge-'+(diff>=0?'green':'red')+'">'+(diff>=0?'▲':'▼')+' '+Math.abs(diff*100).toFixed(1)+'%</span>';
+      } else if(r.curGmv === 0){
+        chg = '<span class="badge badge-gray">—</span>';
+      }
+      h += '<tr><td>'+rank+'</td><td><strong>'+escHtml(r.kol)+'</strong></td><td class="num">'+fmt(r.curGmv)+'</td><td class="num">'+fmt(r.curOrders)+'</td><td class="num">'+fmt(r.mmGmv)+'</td><td class="num">'+fmt(r.mmOrders)+'</td><td class="num">'+chg+'</td></tr>';
+    });
+    h += '</tbody></table><div class="pager" id="pagerKolMoM"></div>';
+    el.innerHTML = h;
+    paginateTable('tblKolMoM', 'pagerKolMoM', 10);
+  }
+  const momFromEl = document.getElementById('momFrom');
+  const momToEl = document.getElementById('momTo');
+  const momResetEl = document.getElementById('momReset');
+  if(momFromEl){
+    momFromEl.onchange = () => { state.kolMomFrom = momFromEl.value; buildMomContent(state.kolMomFrom, state.kolMomTo); };
+    momToEl.onchange = () => { state.kolMomTo = momToEl.value; buildMomContent(state.kolMomFrom, state.kolMomTo); };
+    momResetEl.onclick = () => {
+      state.kolMomFrom = state.dateFrom; state.kolMomTo = state.dateTo;
+      momFromEl.value = state.dateFrom||''; momToEl.value = state.dateTo||'';
+      buildMomContent(state.kolMomFrom, state.kolMomTo);
+    };
+    buildMomContent(state.kolMomFrom, state.kolMomTo);
+  }
+
+  mkChart('cDayL','dayL',{
+    type:'line',
+    data:{
+      labels: byDay.map(r=>r.key),
+      datasets:[{label:'GMV', data: byDay.map(r=>r.gmv), borderColor:'#8B4513', backgroundColor:'rgba(139,69,19,.15)', tension:.3, fill:true}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.parsed.y)+'đ'}}},
+      scales:{y:{ticks:{callback:v=>fmtK(v)}}}}
+  });
+}
+
+// === KOLS ===
+function renderKols(){
+  const data = applyFilters(RAW);
+  const byKol = aggBy(data, o=>o.kol).filter(r=>r.key).sort((a,b)=>b.gmv-a.gmv);
+
+  let html = '<div class="panel"><h2><span class="zh">達人完整排名</span>Toàn bộ KOL ('+byKol.length+') — kèm SP bán chạy nhất</h2>';
+  html += '<table id="tblKols"><thead><tr><th>#</th><th>KOL TikTok</th><th class="num">Đơn</th><th class="num">SL</th><th class="num">GMV (đ)</th><th class="num">AOV (đ)</th><th>🏆 SP bán chạy nhất</th><th class="num">GMV SP (đ)</th><th class="num">AOV SP (đ)</th></tr></thead><tbody>';
+  byKol.forEach((r,i)=>{
+    const aov = r.orders ? r.gmv/r.orders : 0;
+    const rank = i<3 ? '<span class="badge badge-gold">#'+(i+1)+'</span>' : (i+1);
+    const topProd = topProductForKol(data, r.key);
+    const prodName = topProd ? (topProd.name.length>60 ? topProd.name.substring(0,60)+'...' : topProd.name) : '—';
+    const prodGmv = topProd ? fmt(topProd.gmv) : '—';
+    const prodAov = topProd ? fmt(topProd.aov) : '—';
+    html += '<tr><td>'+rank+'</td><td><strong>'+escHtml(r.key)+'</strong></td><td class="num">'+fmt(r.orders)+'</td><td class="num">'+fmt(r.qty)+'</td><td class="num">'+fmt(r.gmv)+'</td><td class="num">'+fmt(aov)+'</td><td style="font-size:12px">'+escHtml(prodName)+'</td><td class="num">'+prodGmv+'</td><td class="num">'+prodAov+'</td></tr>';
+  });
+  html += '</tbody></table><div class="pager" id="pagerKols"></div></div>';
+  document.getElementById('content').innerHTML = html;
+  paginateTable('tblKols', 'pagerKols', 10);
+}
+
+function render(){
+  state.dateFrom = document.getElementById('dateFrom').value || null;
+  state.dateTo = document.getElementById('dateTo').value || null;
+  Object.keys(state.charts).forEach(destroyChart);
+  if(state.tab==='overview') renderOverview();
+  else if(state.tab==='lookup') renderLookup();
+  else if(state.tab==='kols') renderKols();
+  else if(state.tab==='month') renderMonth(state.selectedMonth);
+  else if(state.tab.startsWith('m')) renderMonth(parseInt(state.tab.slice(1)));
+}
+
+document.getElementById('dateFrom').addEventListener('change', render);
+document.getElementById('dateTo').addEventListener('change', render);
+
+buildTabs();
+buildStatusPills();
+initDateRange();
+render();
+</script>
+</body>
+</html>
