@@ -80,20 +80,56 @@ def main():
     months = sorted(month_sheet.keys())
     print(f"Thang co trong file: {months}")
 
+    # Header aliases -> canonical field. Auto-detect column index cho từng sheet
+    # (TikTok đôi khi thêm cột mới làm lệch layout).
+    HEADER_MAP = {
+        'id':      ['id đơn hàng', 'order id'],
+        'product': ['tên sản phẩm', 'product name'],
+        'qty':     ['số lượng', 'quantity'],
+        'payment': ['payment amount', 'số tiền thanh toán'],
+        'status':  ['trạng thái đơn hàng', 'order status'],
+        'kol':     ['tên người dùng nhà sáng tạo', 'creator username'],
+        'ct':      ['loại nội dung', 'content type'],
+        'com':     ['thanh toán hoa hồng thực tế', 'actual commission payment'],
+        'date':    ['thời gian đã tạo', 'created time'],
+    }
+    def build_cols(header):
+        cols = {}
+        norm_h = [(str(h).strip().lower() if h else '') for h in header]
+        for field, aliases in HEADER_MAP.items():
+            for al in aliases:
+                if al in norm_h:
+                    cols[field] = norm_h.index(al)
+                    break
+        return cols
+
+    def _s(v):
+        if v is None: return ''
+        if isinstance(v, datetime): return v.strftime('%Y-%m-%d')
+        return str(v)
+
     orders = []
     for m in months:
-        for r in wb[month_sheet[m]].iter_rows(min_row=2, values_only=True):
-            if not r[0]: continue
-            dt = parse_dt(r[28], sheet_month=m)
+        rows_iter = wb[month_sheet[m]].iter_rows(min_row=1, values_only=True)
+        header = next(rows_iter, None)
+        if not header: continue
+        cols = build_cols(header)
+        missing = [k for k in HEADER_MAP if k not in cols]
+        if missing:
+            print(f"  ⚠ T{m}: thiếu cột {missing} — skip")
+            continue
+        for r in rows_iter:
+            if not r[cols['id']]: continue
+            dt = parse_dt(r[cols['date']], sheet_month=m)
             orders.append({
-                'id': str(r[0]),
-                'product': r[2] or '',
-                'qty': int(r[7] or 0),
-                'payment': parse_money(r[5]),
-                'status': r[10] or '',
-                'kol': r[11] or '',
-                'ct': r[12] or '',
-                'com': parse_money(r[22]),
+                'id': str(r[cols['id']]),
+                'product': _s(r[cols['product']]),
+                'qty': int(r[cols['qty']] or 0),
+                'payment': parse_money(r[cols['payment']]),
+                'status': _s(r[cols['status']]),
+                'kol': _s(r[cols['kol']]),
+                'ct': _s(r[cols['ct']]),
+                'com': parse_money(r[cols['com']]),
                 'date': dt.strftime('%Y-%m-%d') if dt else '',
                 'month': m,
             })
@@ -102,3 +138,20 @@ def main():
 
     here = os.path.dirname(os.path.abspath(__file__))
     tpl_path = os.path.join(here, 'kol_dashboard_template.html')
+    with open(tpl_path, 'r', encoding='utf-8') as f:
+        tpl = f.read()
+
+    out_path = OUT if os.path.isabs(OUT) else os.path.join(here, OUT)
+    html = (tpl
+            .replace('"__DATA__"', json.dumps(orders, ensure_ascii=False, separators=(',',':')))
+            .replace('"__MONTHS__"', json.dumps(months))
+            .replace('__LAST_UPDATE__', datetime.now().strftime('%Y-%m-%d %H:%M')))
+    with open(out_path, 'w', encoding='utf-8') as f:
+        f.write(html)
+    print(f"OK: {out_path} ({os.path.getsize(out_path):,} bytes)")
+    try: os.remove(TMP)
+    except: pass
+
+
+if __name__ == "__main__":
+    main()

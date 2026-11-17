@@ -2,8 +2,8 @@ name: Update KOL Dashboard
 
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *'        # Mỗi giờ tự chạy
+  workflow_dispatch:            # Cho phép Run thủ công từ tab Actions
   push:
     branches: [main]
     paths:
